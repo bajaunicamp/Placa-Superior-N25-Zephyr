@@ -1,39 +1,29 @@
-// Esse programa de expemplo printa "Hello World!" no LOG no momento em que o led pisca
-
 #include "zephyr/device.h"
 #include "zephyr/sys/printk.h"
 #include <zephyr/logging/log.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/kernel.h>
 
+#include "can.h"
+#include "SIM800L.h"
+#include "gps.h"
+
 LOG_MODULE_REGISTER();
 
-const struct gpio_dt_spec *const led = &(const struct gpio_dt_spec)GPIO_DT_SPEC_GET(DT_NODELABEL(led0), gpios);
+// esse código controla apenas o SIM800L e o GPS
+
+int port;
+enum OPERADORA op;
 
 int main(){
-  LOG_INF("Inicializando");
-
-  if(!device_is_ready(led->port)){
-    LOG_ERR("Led não está funcinando");
-  }
-
-  gpio_pin_configure_dt(led, GPIO_OUTPUT_ACTIVE);
+  LOG_INF("Inicializando placa superior...");
   
-  // Note que o log do programa em execução acontece os dois de uma
-  // vez, isso ocorre porque ele é assícrono
-  // Por isso tome cuidado com essas funções
-  // WARNING: nunca deixe o while(true) vazio, deixe pelo menos um k_msleep(1)
-  // dentro dele
-  while (true) {
-    printk("Led aceso\n");
-    gpio_pin_set_dt(led, 1);
+  if(Init_CAN()) LOG_ERR("Não foi possível inicializar o CAN");
 
-    // Além do LOG, temos o printk
+  if(init_gps()) LOG_ERR("Não foi possível inicializar o GPS");
 
-    k_msleep(1000);
+  if(init_server(port, op)) LOG_ERR("Não foi possível se conectar ao servidor");
 
-    printk("Led apagado\n");
-    gpio_pin_set_dt(led, 0);
-    k_msleep(1000);
-  }
+  
+
 }
